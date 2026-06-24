@@ -1,122 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from "react";
+import RouteSearch from "./components/RouteSearch";
+import AvailabilityCheck from "./components/AvailabilityCheck";
+import { getStations } from "./api/client";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [tab, setTab]               = useState("routes");
+  const [stations, setStations]     = useState({});
+  const [stationsLoading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getStations()
+      .then(setStations)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const tabs = [
+    { id: "routes",       label: "Find Routes"         },
+    { id: "availability", label: "Check Availability"  },
+  ];
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-indigo-950 text-white px-6 py-5 shadow-lg">
+        <div className="max-w-2xl mx-auto flex items-end justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">TatkalX</h1>
+            <p className="text-indigo-400 text-xs mt-0.5">
+              Intelligent railway ticket assistant
+            </p>
+          </div>
+          <span className="text-xs bg-orange-500 text-white px-2.5 py-1 rounded-full font-semibold">
+            BETA
+          </span>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {/* Tab bar */}
+      <div className="bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-2xl mx-auto px-6 flex gap-0">
+          {tabs.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-5 py-3.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === t.id
+                  ? "border-indigo-600 text-indigo-700"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}>
+              {t.label}
+            </button>
+          ))}
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Content */}
+      <main className="max-w-2xl mx-auto px-6 py-8">
+        {stationsLoading ? (
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <div className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500
+                            rounded-full animate-spin" />
+            Loading stations…
+          </div>
+        ) : tab === "routes" ? (
+          <RouteSearch stations={stations} />
+        ) : (
+          <AvailabilityCheck stations={stations} />
+        )}
+      </main>
+    </div>
+  );
 }
-
-export default App
