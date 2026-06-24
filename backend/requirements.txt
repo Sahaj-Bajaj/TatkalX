@@ -2,3 +2,9 @@ fastapi
 uvicorn[standard]
 python-dotenv
 pydantic-settings
+networkx
+xgboost
+scikit-learn
+pandas
+numpy
+joblib

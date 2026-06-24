@@ -1,0 +1,3 @@
+from app.services.prediction_service import train_and_save_model
+
+train_and_save_model()

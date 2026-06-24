@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
+from app.routes.search import router as search_router
+from app.routes.predict import router as predict_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -14,6 +17,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(search_router)
+app.include_router(predict_router)
 
 @app.get("/health")
 def health_check():

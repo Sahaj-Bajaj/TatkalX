@@ -4,6 +4,9 @@ __pycache__/
 .env
 venv/
 
+# ML models
+models/*.pkl
+
 # Node
 node_modules/
 dist/
