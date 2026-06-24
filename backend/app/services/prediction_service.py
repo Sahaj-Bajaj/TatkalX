@@ -1,13 +1,15 @@
 import os
 import joblib
 import pandas as pd
+from pathlib import Path
 from xgboost import XGBRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
 from app.data.training_data import generate_synthetic_data
 
-MODEL_PATH = "models/availability_model.pkl"
+BASE_DIR = Path(__file__).resolve().parents[2]
+MODEL_PATH = BASE_DIR / "models" / "availability_model.pkl"
 
 # Routes we know are historically congested — scored 1–5
 ROUTE_POPULARITY = {
