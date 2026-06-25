@@ -1,7 +1,9 @@
-from database.operations import log_search
-from database.connection import get_db
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.orm import Session
 from app.services.graph_service import find_routes
+from database.connection import get_db
+from database.connection import get_db_dependency
+from database.operations import log_search, get_all_stations
 
 router = APIRouter(
     prefix="/search",
@@ -36,10 +38,13 @@ def get_routes(
 
 
 @router.get("/stations")
-def list_stations():
-    from app.services.graph_service import graph
+def list_stations(db: Session = Depends(get_db_dependency)):
+    stations = get_all_stations(db)
 
     return {
-        code: data
-        for code, data in graph.nodes(data=True)
+        station["code"]: {
+            "name": station["name"],
+            "city": station["city"],
+        }
+        for station in stations
     }
