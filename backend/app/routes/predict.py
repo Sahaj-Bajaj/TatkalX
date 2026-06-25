@@ -16,7 +16,12 @@ def get_availability(
     day_of_week: int = Query(..., ge=0, le=6, description="0=Mon, 6=Sun"),
     month: int = Query(..., ge=1, le=12),
     is_tatkal: bool = Query(False),
-    hour_of_booking: int = Query(10, ge=0, le=23, description="Hour you plan to book (24hr)"),
+    hour_of_booking: int = Query(
+        10,
+        ge=0,
+        le=23,
+        description="Hour you plan to book (24hr)",
+    ),
 ):
     result = predict_availability(
         source=source,
@@ -40,6 +45,7 @@ def get_availability(
                 "day_of_week": day_of_week,
                 "month": month,
             },
+            shap_values=result["feature_importance"],
             model_version="1.0.0",
         )
 
