@@ -21,24 +21,31 @@ ROUTES_CACHE_TTL = 3600  # 1 hour
 @router.get("/routes")
 def get_routes(
     source: str = Query(..., description="Station code e.g. NDLS"),
-    destination: str = Query(..., description="Station code e.g. BCT"),
+    destination: str = Query(..., description="Station code e.g. MMCT"),
     max_routes: int = Query(3, ge=1, le=5),
 ):
     cache_key = f"routes:{source}:{destination}:{max_routes}"
 
     # Try Redis first
-    result = redis_client.get(cache_key)
+    try:
+        result = redis_client.get(cache_key)
+    except Exception:
+        result = None
 
     if result is None:
         # Cache miss → compute routes
         result = find_routes(source, destination, max_routes)
 
-        # Store in Redis
-        redis_client.set(
-            cache_key,
-            result,
-            ROUTES_CACHE_TTL
-        )
+        # Cache only successful responses
+        if "error" not in result:
+            try:
+                redis_client.set(
+                    cache_key,
+                    result,
+                    ROUTES_CACHE_TTL
+                )
+            except Exception:
+                pass
 
     # Always log the search for analytics
     if "routes" in result and result["routes"]:
@@ -62,7 +69,11 @@ def get_routes(
 @router.get("/stations")
 def list_stations(db: Session = Depends(get_db_dependency)):
     # Try Redis first
-    cached_stations = redis_client.get(STATIONS_CACHE_KEY)
+    try:
+        cached_stations = redis_client.get(STATIONS_CACHE_KEY)
+    except Exception:
+        cached_stations = None
+
     if cached_stations is not None:
         return cached_stations
 
@@ -77,11 +88,14 @@ def list_stations(db: Session = Depends(get_db_dependency)):
         for station in stations
     }
 
-    # Store in Redis
-    redis_client.set(
-        STATIONS_CACHE_KEY,
-        response,
-        STATIONS_CACHE_TTL
-    )
+    # Store in Redis (ignore cache failures)
+    try:
+        redis_client.set(
+            STATIONS_CACHE_KEY,
+            response,
+            STATIONS_CACHE_TTL
+        )
+    except Exception:
+        pass
 
     return response

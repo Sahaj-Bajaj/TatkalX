@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -10,9 +12,26 @@ from app.routes.analytics import router as analytics_router
 from app.routes.predict import router as predict_router
 from app.routes.search import router as search_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if check_connection():
+        print("✓ PostgreSQL connected")
+    else:
+        print("✗ PostgreSQL connection failed")
+
+    if redis_client.ping():
+        print("✓ Redis connected")
+    else:
+        print("✗ Redis connection failed")
+
+    yield
+
+
 app = FastAPI(
     title=settings.app_name,
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(APIMetricsMiddleware)
@@ -31,19 +50,6 @@ app.add_middleware(
 app.include_router(search_router)
 app.include_router(predict_router)
 app.include_router(analytics_router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    if check_connection():
-        print("✓ PostgreSQL connected")
-    else:
-        print("✗ PostgreSQL connection failed")
-
-    if redis_client.ping():
-        print("✓ Redis connected")
-    else:
-        print("✗ Redis connection failed")
 
 
 @app.get("/health")

@@ -39,7 +39,7 @@ def get_availability(
             db=db,
             source_code=source,
             destination_code=destination,
-            delay_probability=result["availability_probability"],
+            availability_probability =result["availability_probability"],
             inputs={
                 "departure_hour": hour_of_booking,
                 "day_of_week": day_of_week,

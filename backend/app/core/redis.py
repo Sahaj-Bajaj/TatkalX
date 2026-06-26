@@ -19,18 +19,12 @@ class RedisClient:
 
     def get(self, key: str) -> Optional[Any]:
         value = self.client.get(key)
-
-        # Don't count metric keys themselves
-        if key not in {"cache:hits", "cache:misses"}:
-            if value is None:
-                self.client.incr("cache:misses")
-                return None
-
-            self.client.incr("cache:hits")
-
         if value is None:
+            if key not in {"cache:hits", "cache:misses"}:
+                self.client.incr("cache:misses")
             return None
-
+        if key not in {"cache:hits", "cache:misses"}:
+            self.client.incr("cache:hits")
         return json.loads(value)
 
     def set(self, key: str, value: Any, ttl: int):
