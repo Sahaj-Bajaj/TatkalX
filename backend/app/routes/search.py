@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.orm import Session
+
+from app.core.redis import redis_client
 from app.services.graph_service import find_routes
 from database.connection import get_db
 from database.connection import get_db_dependency
@@ -10,6 +12,11 @@ router = APIRouter(
     tags=["Search"]
 )
 
+STATIONS_CACHE_KEY = "stations:all"
+STATIONS_CACHE_TTL = 86400  # 24 hours
+
+ROUTES_CACHE_TTL = 3600  # 1 hour
+
 
 @router.get("/routes")
 def get_routes(
@@ -17,8 +24,23 @@ def get_routes(
     destination: str = Query(..., description="Station code e.g. BCT"),
     max_routes: int = Query(3, ge=1, le=5),
 ):
-    result = find_routes(source, destination, max_routes)
+    cache_key = f"routes:{source}:{destination}:{max_routes}"
 
+    # Try Redis first
+    result = redis_client.get(cache_key)
+
+    if result is None:
+        # Cache miss → compute routes
+        result = find_routes(source, destination, max_routes)
+
+        # Store in Redis
+        redis_client.set(
+            cache_key,
+            result,
+            ROUTES_CACHE_TTL
+        )
+
+    # Always log the search for analytics
     if "routes" in result and result["routes"]:
         best_route = result["routes"][0]
 
@@ -39,12 +61,27 @@ def get_routes(
 
 @router.get("/stations")
 def list_stations(db: Session = Depends(get_db_dependency)):
+    # Try Redis first
+    cached_stations = redis_client.get(STATIONS_CACHE_KEY)
+    if cached_stations is not None:
+        return cached_stations
+
+    # Load from PostgreSQL
     stations = get_all_stations(db)
 
-    return {
+    response = {
         station["code"]: {
             "name": station["name"],
             "city": station["city"],
         }
         for station in stations
     }
+
+    # Store in Redis
+    redis_client.set(
+        STATIONS_CACHE_KEY,
+        response,
+        STATIONS_CACHE_TTL
+    )
+
+    return response

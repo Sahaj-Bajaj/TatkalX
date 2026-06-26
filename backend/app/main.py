@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database.connection import check_connection
 
 from app.core.config import settings
+from app.core.redis import redis_client
 from app.middleware.api_metrics import APIMetricsMiddleware
 from app.routes.analytics import router as analytics_router
 from app.routes.predict import router as predict_router
@@ -39,13 +40,20 @@ async def startup_event():
     else:
         print("✗ PostgreSQL connection failed")
 
+    if redis_client.ping():
+        print("✓ Redis connected")
+    else:
+        print("✗ Redis connection failed")
+
 
 @app.get("/health")
 def health_check():
     db_connected = check_connection()
+    redis_connected = redis_client.ping()
 
     return {
         "status": "ok",
         "app": settings.app_name,
         "database": "connected" if db_connected else "disconnected",
+        "redis": "connected" if redis_connected else "disconnected",
     }
