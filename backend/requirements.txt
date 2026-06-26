@@ -11,3 +11,4 @@ joblib
 SQLAlchemy
 psycopg2-binary
 alembic
+redis
