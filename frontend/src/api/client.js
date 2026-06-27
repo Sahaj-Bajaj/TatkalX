@@ -2,38 +2,47 @@ const BASE =
   import.meta.env.VITE_API_URL ||
   "http://localhost:8000";
 
-export async function getStations() {
-  const res = await fetch(`${BASE}/search/stations`);
+async function fetchJson(url, defaultMessage) {
+  const res = await fetch(url);
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch stations");
+  let data = null;
+
+  try {
+    data = await res.json();
+  } catch {
+    // Response wasn't JSON
   }
 
-  return res.json();
+  if (!res.ok) {
+    throw new Error(
+      data?.detail ||
+      data?.message ||
+      defaultMessage
+    );
+  }
+
+  return data;
 }
 
-export async function getRoutes(source, destination, maxRoutes = 3) {
-  const res = await fetch(
-    `${BASE}/search/routes?source=${source}&destination=${destination}&max_routes=${maxRoutes}`
+export function getStations() {
+  return fetchJson(
+    `${BASE}/search/stations`,
+    "Failed to fetch stations."
   );
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch routes");
-  }
-
-  return res.json();
 }
 
-export async function getAvailability(params) {
+export function getRoutes(source, destination, maxRoutes = 3) {
+  return fetchJson(
+    `${BASE}/search/routes?source=${source}&destination=${destination}&max_routes=${maxRoutes}`,
+    "Failed to fetch routes."
+  );
+}
+
+export function getAvailability(params) {
   const query = new URLSearchParams(params).toString();
 
-  const res = await fetch(
-    `${BASE}/predict/availability?${query}`
+  return fetchJson(
+    `${BASE}/predict/availability?${query}`,
+    "Failed to fetch prediction."
   );
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch prediction");
-  }
-
-  return res.json();
 }
