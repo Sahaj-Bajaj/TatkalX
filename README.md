@@ -28,6 +28,47 @@ TatkalX answers two questions every Indian railway passenger asks before booking
 > **Note:** The backend is deployed on Render's free tier. The first request after a period of inactivity may take approximately 30 seconds while the service wakes up.
 
 ---
+## 📸 Screenshots
+
+### 🏠 Home
+
+<p align="center">
+  <img src="docs/images/home.png" alt="TatkalX Home" width="100%">
+</p>
+
+---
+
+### 🚉 Intelligent Route Search
+
+<p align="center">
+  <img src="docs/images/route-search.png" alt="Route Search" width="100%">
+</p>
+
+---
+
+### 🎫 Availability Prediction
+
+<p align="center">
+  <img src="docs/images/prediction.png" alt="Availability Prediction" width="100%">
+</p>
+
+---
+
+### 🧠 SHAP Explainability
+
+<p align="center">
+  <img src="docs/images/shap.png" alt="SHAP Explainability" width="100%">
+</p>
+
+---
+
+### 🗺️ Railway Network Visualization
+
+<p align="center">
+  <img src="docs/images/network-map.png" alt="Railway Network Map" width="100%">
+</p>
+
+---
 
 ## Table of Contents
 
