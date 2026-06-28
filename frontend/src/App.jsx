@@ -40,8 +40,7 @@ export default function App() {
                 <h1 className="text-3xl font-black tracking-tight leading-none">
                   Tatkal<span className="text-orange-400">X</span>
                 </h1>
-                <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded
-                                 font-bold tracking-wide self-center">BETA</span>
+                
               </div>
               <p className="text-indigo-300/75 text-sm mt-1.5">
                 Intelligent Railway Ticket Assistant
