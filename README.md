@@ -210,9 +210,9 @@ sequenceDiagram
 | **ML model** | XGBoost Regressor | Outperforms linear models on tabular features with nonlinear interactions. Native SHAP support. |
 | **Explainability** | SHAP TreeExplainer | Exact — O(T×L×D). KernelExplainer uses sampling approximation and is 10–100× slower for tree models. |
 | **Cache pattern** | Cache-aside | Read-heavy workload. Routes are deterministic and never mutated. Write-through would add invalidation logic with no benefit. |
-| **Prediction caching** | None | (1) Predictions are intentionally not cached because each prediction is stored for analytics and the diversity of input combinations makes cache reuse unlikely. for the analytics trail. (2) Input cardinality makes hit rate near zero. |
+| **Prediction caching** | None | (1) Every prediction must reach PostgreSQL for the analytics audit trail — a cache hit silently skips the log. (2) Input cardinality (source × destination × days × class × tatkal × hour × month) makes hit rate near zero. |
 | **Redis TTLs** | Routes 1h · Stations 24h · Analytics 5min | Stations are static. Routes are pure graph math. Analytics aggregations tolerate 5-min staleness. |
-| DB pool | SQLAlchemy Connection Pool | Configured for reliable database connectivity and compatibility with Render's free-tier deployments. |
+| **Connection pool** | size=10, overflow=20, `pool_pre_ping=True`, recycle=1800 | Render sleeps free-tier instances and drops idle TCP connections. Pre-ping sends `SELECT 1` before each checkout — reconnects transparently without surfacing errors. |
 | **Deployment** | Render (API + PG) + Vercel (frontend) | Vercel CDN edge for static assets. Render managed PostgreSQL with automatic backups. Both free-tier compatible. |
 
 ---
@@ -399,10 +399,10 @@ The model is trained on a domain-engineered synthetic dataset using a train/test
 ### Configuration
 
 ```python
-The model is implemented using XGBoost and serialized with Joblib for efficient loading during application startup. The model and SHAP explainer are initialized once and reused for all prediction requests.
+XGBRegressor(n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42)
 ```
 
-Saved to `models/availability_model.pkl` via `joblib`. The model and SHAP explainer are initialized during application startup and reused for subsequent requests. — no per-request overhead. SHAP `TreeExplainer` is also initialised once alongside the model.
+Saved to `models/availability_model.pkl` via `joblib`. Loaded once at startup as a module-level singleton — no per-request model loading overhead. SHAP `TreeExplainer` is also initialised once alongside the model.
 
 ---
 
@@ -419,7 +419,7 @@ Saved to `models/availability_model.pkl` via `joblib`. The model and SHAP explai
 └──────────────────────────┴────────┴─────────────────────────────────┘
 ```
 
-If Redis is unavailable, the application automatically falls back to direct computation without interrupting requests. If Upstash is unreachable, requests fall through to compute normally. Cache failure is a latency regression, not an outage.
+Every Redis call is wrapped in `try/except`. If Upstash is unreachable, requests fall through to compute normally. Cache failure is a latency regression, not an outage.
 
 ---
 
@@ -454,7 +454,7 @@ Every Redis call is inside `try/except Exception`. On failure, `result` is `None
 Two reasons: (1) every prediction must be written to PostgreSQL for the analytics layer — a cache hit silently skips the audit trail; (2) input cardinality (source × destination × days × class × tatkal × hour × month) makes the hit rate negligible.
 
 **Why `pool_pre_ping=True`?**
-Render's free tier may close idle database connections. SQLAlchemy's connection pool is configured to automatically validate and refresh stale connections, improving reliability after cold starts.
+Render's free tier suspends PostgreSQL instances after inactivity and drops idle TCP connections. Without pre-ping, SQLAlchemy hands out stale connections from the pool that throw `OperationalError` on first use. `pool_pre_ping` issues `SELECT 1` before each checkout and transparently recycles dead connections. `pool_recycle=1800` covers the case where a connection silently dies mid-session.
 
 **Why synthetic training data?**
 IRCTC has no public booking API. Real Tatkal availability data is proprietary. The generator in `training_data.py` encodes domain knowledge — Tatkal opens at 10 AM, SL fills fastest, peak seasons in Oct–Jan and May–Jun — to produce realistic distributions. The project demonstrates the end-to-end ML + XAI pipeline, not a production predictor.
