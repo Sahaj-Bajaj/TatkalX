@@ -66,6 +66,14 @@ def get_routes(
     return result
 
 
+# In backend/app/routes/search.py — replace the list_stations() function
+# with this version. Only change: filter the DB result down to station
+# codes that actually exist in the route graph, so the dropdown never
+# offers a station that /search/routes can't reach.
+
+from app.services.graph_service import graph as route_graph
+
+
 @router.get("/stations")
 def list_stations(db: Session = Depends(get_db_dependency)):
     # Try Redis first
@@ -80,12 +88,17 @@ def list_stations(db: Session = Depends(get_db_dependency)):
     # Load from PostgreSQL
     stations = get_all_stations(db)
 
+    # Only expose stations that exist in the route graph —
+    # keeps the dropdown and /search/routes in sync.
+    routable_codes = set(route_graph.nodes)
+
     response = {
         station["code"]: {
             "name": station["name"],
             "city": station["city"],
         }
         for station in stations
+        if station["code"] in routable_codes
     }
 
     # Store in Redis (ignore cache failures)
